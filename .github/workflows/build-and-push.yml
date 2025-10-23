@@ -20,13 +20,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Determine project layout
+        id: layout
+        shell: bash
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "project_dir=frontend" >> "$GITHUB_OUTPUT"
+            echo "image_suffix=-frontend" >> "$GITHUB_OUTPUT"
+          else
+            echo "project_dir=." >> "$GITHUB_OUTPUT"
+            echo "image_suffix=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Compute image metadata
         id: vars
         shell: bash
         run: |
           OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           REPO_LC=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE="ghcr.io/${OWNER_LC}/${REPO_LC}-frontend"
+          SUFFIX="${{ steps.layout.outputs.image_suffix }}"
+          IMAGE="ghcr.io/${OWNER_LC}/${REPO_LC}${SUFFIX}"
           TAG="${GITHUB_SHA}"
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
           echo "TAG=$TAG" >> $GITHUB_ENV
@@ -40,11 +53,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: frontend
+        working-directory: ${{ steps.layout.outputs.project_dir }}
 
       - name: Run tests
         run: npm test -- --watch=false --passWithNoTests
-        working-directory: frontend
+        working-directory: ${{ steps.layout.outputs.project_dir }}
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -55,7 +68,7 @@ jobs:
 
       - name: Build and push image
         shell: bash
-        working-directory: frontend
+        working-directory: ${{ steps.layout.outputs.project_dir }}
         run: |
           docker build -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
           docker push "$IMAGE:$TAG"
@@ -64,13 +77,19 @@ jobs:
       - name: Persist image tag
         shell: bash
         run: |
-          echo "$TAG" > frontend/image-tag.txt
-          if git diff --quiet --exit-code -- frontend/image-tag.txt; then
+          TARGET_DIR="${{ steps.layout.outputs.project_dir }}"
+          if [ "$TARGET_DIR" = "." ]; then
+            TARGET_FILE="image-tag.txt"
+          else
+            TARGET_FILE="$TARGET_DIR/image-tag.txt"
+          fi
+          echo "$TAG" > "$TARGET_FILE"
+          if git diff --quiet --exit-code -- "$TARGET_FILE"; then
             echo "Image tag unchanged; skipping commit update."
             exit 0
           fi
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add frontend/image-tag.txt
+          git add "$TARGET_FILE"
           git commit -m "chore(frontend): update image tag $TAG"
           git push
