@@ -82,7 +82,7 @@ jobs:
           docker build -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
           docker push "$IMAGE:$TAG"
           docker push "$IMAGE:latest"
-        # 프론트엔드 Docker 이미지 빌드 후 푸시
+        # 현재 작업 디렉터리(frontend 또는 루트)의 Dockerfile을 읽어 이미지 빌드 후 GHCR로 푸시
 
       - name: Persist image tag
         shell: bash
