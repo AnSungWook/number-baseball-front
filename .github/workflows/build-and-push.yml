@@ -93,7 +93,15 @@ jobs:
           else
             TARGET_FILE="$TARGET_DIR/image-tag.txt"
           fi
-          echo "$TAG" > "$TARGET_FILE"
+          TMP_FILE="$(mktemp)"
+          {
+            echo "$TAG"
+            if [ -f "$TARGET_FILE" ]; then
+              grep -vxF "$TAG" "$TARGET_FILE" || true
+            fi
+          } > "$TMP_FILE"
+          mv "$TMP_FILE" "$TARGET_FILE"
+          # 최신 태그를 파일 맨 위에 추가하고 기존 기록은 아래로 밀어 누적 관리
           git add "$TARGET_FILE"
           if git diff --cached --quiet -- "$TARGET_FILE"; then
             echo "Image tag unchanged; skipping commit update."
