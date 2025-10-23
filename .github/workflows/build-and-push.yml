@@ -94,13 +94,13 @@ jobs:
             TARGET_FILE="$TARGET_DIR/image-tag.txt"
           fi
           echo "$TAG" > "$TARGET_FILE"
-          if git diff --quiet --exit-code -- "$TARGET_FILE"; then
+          git add "$TARGET_FILE"
+          if git diff --cached --quiet -- "$TARGET_FILE"; then
             echo "Image tag unchanged; skipping commit update."
             exit 0
           fi
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add "$TARGET_FILE"
           git commit -m "chore(frontend): update image tag $TAG"
           git push
         # 사용한 태그를 기록 파일에 저장하고 변경 시 커밋/푸시
