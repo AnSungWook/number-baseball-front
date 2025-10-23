@@ -3,8 +3,6 @@ name: Frontend Image
 on:
   push:
     branches: ["main"]
-    paths:
-      - "frontend/**"
   workflow_dispatch: {}
 
 permissions:
