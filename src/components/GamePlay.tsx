@@ -225,13 +225,17 @@ const GamePlay: React.FC<GamePlayProps> = ({ gameId, gameState, onGameStateUpdat
         {guess.map((digit, index) => (
           <input
             key={index}
-            type="text"
+            type="tel"
             className="number-input"
             value={digit}
             onChange={(e) => handleInputChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyPress(index, e)}
             maxLength={1}
             disabled={isLoading}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            aria-label={`${index + 1}번째 숫자 입력`}
           />
         ))}
       </div>
